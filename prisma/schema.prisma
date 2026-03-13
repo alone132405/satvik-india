@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  password     String
+  name         String
+  phone        String?
+  role         Role      @default(CUSTOMER)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  addresses    Address[]
+  orders       Order[]
+  cartItems    CartItem[]
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+// Address model for delivery
+model Address {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  phone        String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  pincode      String
+  isDefault    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  
+  orders       Order[]
+}
+
+// Product model
+model Product {
+  id           String      @id @default(cuid())
+  name         String
+  description  String
+  price        Float
+  size         String      // 50g, 100g, 250g
+  stock        Int         @default(100)
+  image        String?
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+}
+
+// Cart Item model
+model CartItem {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity     Int       @default(1)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@unique([userId, productId])
+}
+
+// Order model
+model Order {
+  id            String       @id @default(cuid())
+  orderNumber   String       @unique @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  addressId     String
+  address       Address      @relation(fields: [addressId], references: [id])
+  status        OrderStatus  @default(PENDING)
+  totalAmount   Float
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  items         OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// Order Item model
+model OrderItem {
+  id           String    @id @default(cuid())
+  orderId      String
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product   @relation(fields: [productId], references: [id])
+  quantity     Int
+  price        Float     // Price at time of order
+  
+  @@unique([orderId, productId])
+}
+
+// Contact form submissions
+model Contact {
+  id           String    @id @default(cuid())
+  name         String
+  email        String
+  phone        String?
+  subject      String
+  message      String
+  isRead       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+}
